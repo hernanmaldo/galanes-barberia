@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -8,6 +8,9 @@ import { Separator } from "./ui/separator";
 import { Clock, Calendar as CalendarIcon, CheckCircle, AlertCircle, User, Scissors } from "lucide-react";
 import { format, addDays, isSameDay, startOfToday, isBefore } from "date-fns";
 import { es } from "date-fns/locale";
+import {Service, Services} from "./Services.tsx"
+import { CustomerInfo,CustomerInfoType } from "./CustomerInfo.tsx";
+
 
 interface TimeSlot {
   time: string;
@@ -19,26 +22,37 @@ interface BookingData {
   date: Date | undefined;
   time: string;
   service?: string;
-}
-interface BookingProps {
-  selectedService: {
-    name: string;
-    description: string;
-    price: string;
-    duration: string;
-  } | null; // null si no hay servicio seleccionado
+  customerName: string; 
 }
 
-export function Booking({selectedService}: BookingProps) {
-
+export function Booking() {
+  const [selectedService, setSelectedService] = useState<Service>();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showCustomerInfo, setShowCustomerInfo] = useState(false);
+
+  const [customerInfo, onCustomerInfo] = useState<CustomerInfoType>({
+      name: "",
+      lastName: "",
+      phoneNumber: "",
+      email: ""
+  });
+
   const [bookingData, setBookingData] = useState<BookingData>({
     date: undefined,
-    time: ""
+    time: "",
+    customerName: ""
   });
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" }); 
+  }, []);
+
+  const handleCustomerInfoUpdate = (newCustomerInfo: CustomerInfoType) => {
+    onCustomerInfo(newCustomerInfo);
+    handleConfirmBooking();
+  };
 
   const serviceToShow = selectedService ?? {
     name: "Corte Clásico",
@@ -52,7 +66,7 @@ export function Booking({selectedService}: BookingProps) {
   const availableDates = Array.from({ length: 28 }, (_, i) => addDays(today, i))
     .filter(date => {
       const dayOfWeek = date.getDay();
-      return dayOfWeek >= 2 && dayOfWeek <= 6; // Martes (2) a Sábado (6)
+      return dayOfWeek >= 1 && dayOfWeek <= 5; // Martes (2) a Sábado (6)
     });
 
   // Horarios disponibles por día
@@ -76,6 +90,10 @@ export function Booking({selectedService}: BookingProps) {
   };
 
   const timeSlots = getAvailableTimeSlots(selectedDate);
+  
+  const handleSelectedService = (service: Service) =>{
+    setSelectedService(service);
+  }
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -87,21 +105,27 @@ export function Booking({selectedService}: BookingProps) {
   };
 
   const handleConfirmBooking = () => {
-    if (selectedDate && selectedTime) {
       setBookingData({
         date: selectedDate,
         time: selectedTime,
-        service: "Corte + Barba" // Default service
+        service: selectedService?.name ,// Default service
+        customerName: customerInfo.name
       });
       setShowConfirmation(true);
-    }
+    
   };
-
+  const handleConfirmCustomerInfo = () => {
+    if (selectedDate && selectedTime){
+      setShowCustomerInfo(true);
+    }
+  }
   const handleNewBooking = () => {
+    setSelectedService(undefined);
     setShowConfirmation(false);
+    setShowCustomerInfo(false);
     setSelectedDate(undefined);
     setSelectedTime("");
-    setBookingData({ date: undefined, time: "" });
+    setBookingData({ date: undefined, time: "", customerName: "" });
   };
 
   const isDateAvailable = (date: Date) => {
@@ -140,7 +164,7 @@ export function Booking({selectedService}: BookingProps) {
                         <span className="text-muted-foreground">Fecha:</span>
                       </div>
                       <span className="font-medium text-foreground">
-                        {bookingData.date ? format(bookingData.date, "EEEE, d 'de' MMMM", { locale: es }) : ""}
+                        {bookingData.date ? format(bookingData.date, "EEEE, dd-MM-yyyy", { locale: es }) : ""}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -163,6 +187,13 @@ export function Booking({selectedService}: BookingProps) {
                         <span className="text-muted-foreground">Ubicación:</span>
                       </div>
                       <span className="font-medium text-foreground">Italia 184, Sunchales</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <User className="w-4 h-4 text-primary" />
+                        <span className="text-muted-foreground">Cliente:</span>
+                      </div>
+                      <span className="font-medium text-foreground">{customerInfo.name}</span>
                     </div>
                   </div>
                 </div>
@@ -196,61 +227,30 @@ export function Booking({selectedService}: BookingProps) {
       </section>
     );
   }
-
-  return (
-    <section id="booking" className="py-20 bg-card">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">
-            Reservá tu <span className="text-gradient-gold">Turno</span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Elegí la fecha y horario que mejor se adapte a vos. Te garantizamos atención personalizada.
-          </p>
+  if(showCustomerInfo){
+    return(
+      <section id="customerInfo" className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+        <CustomerInfo
+          customerInfo={customerInfo}
+          onCustomerInfo={handleCustomerInfoUpdate}
+          showConfirmationInfo={handleConfirmBooking}
+        >
+        </CustomerInfo>
         </div>
-
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Calendar Section */}
-            <Card className="bg-background border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <CalendarIcon className="w-5 h-5 text-primary" />
-                  <span className="text-foreground">Seleccionar Fecha</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Custom Calendar */}
-                  <CustomCalendar
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    month={currentMonth}
-                    onMonthChange={setCurrentMonth}
-                    isDateDisabled={isDateDisabled}
-                  />
-
-                  {/* Legend */}
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-primary rounded-full"></div>
-                      <span className="text-muted-foreground">Fecha seleccionada</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-accent rounded-full"></div>
-                      <span className="text-muted-foreground">Disponible</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-muted rounded-full"></div>
-                      <span className="text-muted-foreground">No disponible</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Time Slots Section */}
+        </div>
+      </section>
+    )
+  }
+  if(selectedDate){
+    return(
+        <section id="time-slots" className="py-20 bg-background">  
+         
+         <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4">
+           <div className="grid lg:grid-cols-1 gap-8">    
+                {/* Time Slots Section */} 
             <Card className="bg-background border-border">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -345,7 +345,7 @@ export function Booking({selectedService}: BookingProps) {
                       
                     {/* Confirm Button */}
                     <Button
-                      onClick={handleConfirmBooking}
+                      onClick={handleConfirmCustomerInfo}
                       disabled={!selectedDate || !selectedTime}
                       className="w-full h-12 bg-primary/90 hover:bg-primary/100 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -361,6 +361,66 @@ export function Booking({selectedService}: BookingProps) {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+            </div>
+          </div>
+          </div> 
+         
+          </section>
+    )
+  }
+  if(selectedService){
+    return (
+    <section id="booking" className="py-20 bg-card">
+      <div className="container mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-4">
+            Reservá tu <span className="text-gradient-gold">Turno</span>
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Elegí la fecha y horario que mejor se adapte a vos. Te garantizamos atención personalizada.
+          </p>
+        </div>
+
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-1 gap-8">
+            {/* Calendar Section */}
+            <Card className="bg-background border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <CalendarIcon className="w-5 h-5 text-primary" />
+                  <span className="text-foreground">Seleccionar Fecha</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Custom Calendar */}
+                  <CustomCalendar
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    isDateDisabled={isDateDisabled}
+                  />
+
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-primary rounded-full"></div>
+                      <span className="text-muted-foreground">Fecha seleccionada</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-accent rounded-full"></div>
+                      <span className="text-muted-foreground">Disponible</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-muted rounded-full"></div>
+                      <span className="text-muted-foreground">No disponible</span>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -391,4 +451,8 @@ export function Booking({selectedService}: BookingProps) {
       </div>
     </section>
   );
+  }
+  return(
+      <Services  onSelectService={(service) => handleSelectedService(service)} />
+  )
 }

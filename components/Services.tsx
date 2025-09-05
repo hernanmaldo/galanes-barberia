@@ -3,7 +3,7 @@ import { Badge } from "./ui/badge";
 import { Clock, Scissors, Sparkles, Baby } from "lucide-react";
 import { useState } from "react";
 
-interface Service {
+export interface Service {
   name: string;
   duration: string;
   price: string;
@@ -17,7 +17,7 @@ interface ServiceProps {
 
 export function Services({ onSelectService }: ServiceProps) {
 
-    const [selectedService] = useState(null);
+  const [selectedService] = useState(null);
 
   const handleSelect = (service: Service) => {
     onSelectService?.(service);

@@ -11,7 +11,16 @@ export function About() {
   ];
 
   return (
-    <section id="about" className="py-20 bg-card">
+    <section id="about" className="relative py-20 bg-card">
+      <div className="absolute inset-0 z-0">
+        <ImageWithFallback
+          src="https://galanesbarberia.com.ar/wp-content/uploads/2024/11/barberia-peluqueria-hombre-sunchales-santa-fe-2-movil.jpg"
+          alt="Interior elegante de barbería con sillones de cuero y ambiente clásico"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/0"></div>
+      </div>
+
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Image */}
@@ -30,7 +39,7 @@ export function About() {
           </div>
 
           {/* Content */}
-          <div className="space-y-8">
+          <div className="relative space-y-8">
             <div>
               <h2 className="text-4xl font-bold mb-6">
                 Sobre <span className="text-gradient-gold">Galanes Barbería</span>
